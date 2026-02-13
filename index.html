@@ -375,6 +375,7 @@
             emailjs.init("GUWZpUsjNplK0OgnI"); 
 
             const emailParams = {
+                to_email: activeUser.u,
                 name: activeUser.u,
                 message: "Items: " + cart.map(item => item.name).join(", "),
                 order_id: oId, 
@@ -384,11 +385,11 @@
 
             emailjs.send("service_pt7lz3v", "template_1xd92ti", emailParams)
                 .then((res) => {
-                    Swal.fire('Order Placed!', `Success! (${payMethod}) Email sent.`, 'success');
+                    Swal.fire('Order Placed!', `Success! (${payMethod}) Email sent to ${activeUser.u}.`, 'success');
                 })
                 .catch((err) => {
                     console.error("EmailJS Error:", err);
-                    Swal.fire('Order Placed!', 'Order saved. Email delivery issue (Check Public Key).', 'warning');
+                    Swal.fire('Order Placed!', 'Order saved. Email delivery issue.', 'warning');
                 });
 
             cart = []; 
