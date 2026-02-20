@@ -12,16 +12,32 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        :root { --primary: #6c5ce7; --secondary: #a29bfe; --dark: #2d3436; --light: #f4f7f6; --success: #00b894; --warning: #fdcb6e; --info: #0984e3; }
+        :root { --primary: #6c5ce7; --secondary: #a29bfe; --dark: #2d3436; --light: #f4f7f6; --success: #00b894; --warning: #fdcb6e; --info: #0984e3; --danger: #ff7675; }
         * { box-sizing: border-box; font-family: 'Poppins', sans-serif; margin: 0; padding: 0; }
         body { background: var(--light); color: var(--dark); }
 
-        .auth-overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: linear-gradient(45deg, #6c5ce7, #a29bfe, #fd79a8, #6c5ce7);
-            background-size: 400% 400%; animation: gradientBG 12s ease infinite;
-            z-index: 9999; display: flex; justify-content: center; align-items: center; 
-        }
+        /* TRACKER & WISHLIST CSS */
+        .track-container { display: flex; justify-content: space-between; align-items: center; width: 150px; margin: 5px 0; position: relative; }
+        .track-line { position: absolute; top: 50%; left: 0; height: 2px; background: #eee; width: 100%; z-index: 1; transform: translateY(-50%); }
+        .track-step { width: 30px; height: 30px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; z-index: 2; font-size: 0.7rem; color: #aaa; transition: 0.3s; }
+        .track-step.active { background: var(--primary); color: white; box-shadow: 0 0 10px rgba(108, 92, 231, 0.4); }
+        
+        .wishlist-heart { position: absolute; top: 15px; left: 15px; background: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0,0,0,0.1); color: #ccc; cursor: pointer; z-index: 10; transition: 0.3s; }
+        .wishlist-heart.active { color: var(--danger); }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .stat-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; border-bottom: 4px solid var(--primary); }
+        .stat-card i { font-size: 2rem; color: var(--primary); margin-bottom: 10px; }
+        .stat-card h4 { font-size: 0.9rem; color: #666; margin-bottom: 5px; }
+        .stat-card h2 { font-size: 1.5rem; color: var(--dark); }
+
+        .loader { width: 20px; height: 20px; border: 3px solid #FFF; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; margin-right: 10px; vertical-align: middle; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .empty-state { text-align: center; padding: 40px; color: #aaa; background: #fff; border-radius: 20px; border: 2px dashed #eee; grid-column: 1 / -1; }
+        .empty-state i { font-size: 3rem; margin-bottom: 10px; color: #ddd; }
+
+        .auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(45deg, #6c5ce7, #a29bfe, #fd79a8, #6c5ce7); background-size: 400% 400%; animation: gradientBG 12s ease infinite; z-index: 9999; display: flex; justify-content: center; align-items: center; }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
         .auth-card { background: white; padding: 50px 40px; border-radius: 30px; width: 420px; box-shadow: 0 25px 50px rgba(0,0,0,0.2); text-align: center; }
@@ -33,15 +49,16 @@
         nav { background: white; padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
         .container { padding: 2rem 5%; max-width: 1300px; margin: 0 auto; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem; }
-        .card { background: white; padding: 1.2rem; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; }
+        .card { background: white; padding: 1.2rem; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); cursor: pointer; transition: 0.3s; position: relative; }
         .card:hover { transform: translateY(-5px); }
         .card img { width: 100%; height: 180px; object-fit: cover; border-radius: 15px; }
-
-        .status-select { padding: 8px; border-radius: 8px; font-weight: bold; border: 1px solid #ddd; cursor: pointer; outline: none; }
-        .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
-        .status-Pending { background: #ffeaa7; color: #d35400; }
-        .status-Shipped { background: #81ecec; color: #0984e3; }
-        .status-Delivered { background: #55efc4; color: #00b894; }
+        
+        .stock-badge { position: absolute; top: 20px; right: 20px; background: var(--dark); color: white; padding: 4px 10px; border-radius: 10px; font-size: 0.7rem; z-index: 5; }
+        .category-tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px; }
+        .tab { padding: 10px 20px; background: #fff; border-radius: 50px; cursor: pointer; border: 1px solid #eee; white-space: nowrap; display: flex; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 3px 5px rgba(0,0,0,0.02); }
+        .tab i { font-size: 1rem; color: #888; }
+        .tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .tab.active i { color: white; }
 
         .table-container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); overflow-x: auto; margin-bottom: 30px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
@@ -52,8 +69,10 @@
         .chatbot { position: fixed; bottom: 20px; right: 20px; background: #25d366; color: white; width: 55px; height: 55px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; z-index: 1000; text-decoration: none; }
         
         #productDetailView { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 500; display: none; overflow-y: auto; padding: 50px 10%; }
-        .pdf-btn { background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 1.2rem; }
-        .qr-container { text-align: center; margin-top: 15px; display: none; padding: 10px; border: 1px dashed var(--primary); border-radius: 10px; background: #fff; }
+        .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+        .status-Pending { background: #ffeaa7; color: #d35400; }
+        .status-Shipped { background: #81ecec; color: #0984e3; }
+        .status-Delivered { background: #55efc4; color: #00b894; }
     </style>
 </head>
 <body>
@@ -74,7 +93,8 @@
     <nav>
         <div style="font-weight: 800; color: var(--primary); font-size: 1.4rem;">DREAMCLOUD</div>
         <div style="display: flex; gap: 20px; align-items: center;">
-            <div id="userWelcome" style="font-weight: 600;"></div>
+            <div id="userWelcome" style="font-weight: 600; display: none;"></div>
+            <div onclick="toggleWishlistOnly()" id="wishlistBtn" style="cursor: pointer; position: relative;"><i class="fas fa-heart"></i><span id="wishCount" style="background: var(--danger); color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; position: absolute; top: -10px; right: -10px;">0</span></div>
             <div onclick="openCart()" style="cursor: pointer; position: relative;"><i class="fas fa-shopping-cart"></i><span id="cartCount" style="background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; position: absolute; top: -10px; right: -10px;">0</span></div>
             <button class="btn" onclick="logout()" style="background: #eee; color: #333; padding: 5px 15px;">Logout</button>
         </div>
@@ -82,9 +102,26 @@
 
     <div class="container">
         <div id="adminPanel" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card"><i class="fas fa-calendar-day"></i><h4>Today's Sales</h4><h2 id="dailySales">₹0</h2></div>
+                <div class="stat-card"><i class="fas fa-calendar-alt"></i><h4>Monthly Sales</h4><h2 id="monthlySales">₹0</h2></div>
+                <div class="stat-card"><i class="fas fa-shopping-bag"></i><h4>Total Orders</h4><h2 id="totalOrdersCount">0</h2></div>
+            </div>
+
             <div class="table-container">
                 <h3>Add New Product</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;"><input type="text" id="pName" placeholder="Product Name"><input type="number" id="pPrice" placeholder="Price"></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="pName" placeholder="Product Name">
+                    <input type="number" id="pPrice" placeholder="Price">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <select id="pCat">
+                        <option value="Mattress">Mattress</option>
+                        <option value="Pillow">Pillow</option>
+                        <option value="Mat">Mat</option>
+                    </select>
+                    <input type="number" id="pStock" placeholder="Initial Stock" value="10">
+                </div>
                 <textarea id="pDesc" placeholder="Product details..." style="margin-top: 10px;"></textarea>
                 <input type="file" id="pImg" style="margin-top: 10px;" accept="image/*">
                 <button class="btn" id="uploadBtn" style="width: 100%; margin-top: 10px;">Upload to Cloud</button>
@@ -95,62 +132,66 @@
 
         <div id="customerPanel" style="display: none;">
             <h3>Your Recent Orders</h3>
-            <div class="table-container"><table><thead><tr><th>Date</th><th>ID</th><th>Total</th><th>Status</th><th>Receipt</th></tr></thead><tbody id="custOrders"></tbody></table></div>
+            <div class="table-container"><table><thead><tr><th>Date</th><th>ID</th><th>Total</th><th>Live Tracking</th><th>Receipt</th></tr></thead><tbody id="custOrders"></tbody></table></div>
         </div>
 
-        <h2 style="margin: 20px 0;">Our Collection</h2>
+        <div class="search-container">
+            <i class="fa fa-search"></i>
+            <input type="text" id="productSearch" placeholder="Search products..." onkeyup="renderProductsUI()">
+        </div>
+
+        <div class="category-tabs" id="catTabs">
+            <div class="tab active" onclick="filterCat('All')"><i class="fas fa-th-large"></i> All</div>
+            <div class="tab" onclick="filterCat('Mattress')"><i class="fas fa-bed"></i> Mattresses</div>
+            <div class="tab" onclick="filterCat('Pillow')"><i class="fas fa-cloud"></i> Pillows</div>
+            <div class="tab" onclick="filterCat('Mat')"><i class="fas fa-rug"></i> Mats</div>
+        </div>
+
+        <h2 id="collectionTitle" style="margin: 20px 0;">Our Collection</h2>
         <div id="productGrid" class="grid"></div>
     </div>
 </div>
 
-<a href="https://wa.me/919047806132" class="chatbot" target="_blank">
-    <i class="fab fa-whatsapp"></i>
-</a>
+<a href="https://wa.me/919047806132" class="chatbot" target="_blank"><i class="fab fa-whatsapp"></i></a>
 
 <div id="receiptTemplate" style="position: absolute; left: -9999px; padding: 40px; width: 600px; background: white; color: #333;">
     <h1 style="color: #6c5ce7; margin-bottom: 5px;">DREAMCLOUD</h1>
-    <p>Premium Sleep Solutions</p>
-    <hr style="margin: 20px 0;">
-    <h3>INVOICE</h3>
-    <p><b>Order ID:</b> <span id="rId"></span></p>
-    <p><b>Date:</b> <span id="rDate"></span></p>
-    <hr>
-    <p><b>Shipping To:</b></p>
-    <p id="rAddr"></p>
-    <p><b>Phone:</b> <span id="rPhone"></span></p>
-    <hr>
-    <table style="width: 100%; margin-top: 20px;">
-        <thead><tr style="background: #f0f0f0; text-align: left;"><th>Item</th><th>Price</th></tr></thead>
-        <tbody id="rItems"></tbody>
-    </table>
+    <p>Premium Sleep Solutions</p><hr style="margin: 20px 0;"><h3>INVOICE</h3>
+    <p><b>Order ID:</b> <span id="rId"></span></p><p><b>Date:</b> <span id="rDate"></span></p><hr>
+    <p><b>Shipping To:</b></p><p id="rAddr"></p><p><b>Phone:</b> <span id="rPhone"></span></p><hr>
+    <table style="width: 100%; margin-top: 20px;"><thead><tr style="background: #f0f0f0; text-align: left;"><th>Item</th><th>Price</th></tr></thead><tbody id="rItems"></tbody></table>
     <h2 style="text-align: right; margin-top: 20px;">Total: ₹<span id="rTotal"></span></h2>
 </div>
 
 <div id="productDetailView">
     <button class="btn" onclick="closeDetail()" style="background: #333; margin-bottom: 20px;"><i class="fa fa-arrow-left"></i> Back</button>
-    <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+    <div style="display: flex; gap: 40px; flex-wrap: wrap; margin-bottom: 40px;">
         <img id="detailImg" style="width: 400px; border-radius: 20px;">
         <div style="flex: 1;"><h1 id="detailTitle"></h1><h2 id="detailPrice" style="color: var(--primary);"></h2><p id="detailText"></p><div id="detailAction"></div></div>
+    </div>
+    <hr>
+    <div id="reviewsContainer" style="margin-top: 30px; max-width: 800px;">
+        <h3>Customer Reviews</h3><div id="reviewList" style="margin: 20px 0;"></div>
+        <div id="addReviewForm" style="display:none; background: #fff; padding: 20px; border-radius: 15px; border: 1px solid #eee;">
+            <h4>Share your experience</h4>
+            <div style="margin: 10px 0;"><label>Rating: </label><select id="revRating" style="width: auto; padding: 5px;"><option value="5">5 Stars</option><option value="4">4 Stars</option><option value="3">3 Stars</option><option value="2">2 Stars</option><option value="1">1 Star</option></select></div>
+            <textarea id="revComment" placeholder="Write your review here..."></textarea>
+            <button class="btn" style="margin-top: 10px;" id="submitReviewBtn">Submit Review</button>
+        </div>
+        <div id="reviewStatusMsg" style="color: #666; font-style: italic; font-size: 0.8rem; margin-top: 10px;"></div>
     </div>
 </div>
 
 <div id="cartModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
     <div style="background: white; padding: 30px; border-radius: 20px; width: 400px; max-height: 90vh; overflow-y: auto;">
-        <h3>Shopping Cart</h3>
-        <div id="cartList" style="margin: 15px 0;"></div>
+        <h3>Shopping Cart</h3><div id="cartList" style="margin: 15px 0;"></div>
+        <div id="promoSection" style="margin: 10px 0; display: flex; gap: 5px;"><input type="text" id="promoInput" placeholder="Promo Code (DREAM10)" style="padding: 8px;"><button class="btn" onclick="applyPromo()" style="padding: 8px;">Apply</button></div>
         <h4 id="cartTotal"></h4>
         <div id="checkForm" style="display: none;">
             <input type="text" id="addrPhone" placeholder="Mobile" style="margin-bottom:10px;">
             <textarea id="addrFull" placeholder="Address" style="margin-bottom:10px;"></textarea>
-            <select id="payMethod" style="margin-bottom:10px;" onchange="toggleUPI(this.value)">
-                <option value="COD">Cash On Delivery (COD)</option>
-                <option value="UPI">UPI Payment (QR Scan)</option>
-            </select>
-            <div id="upiQRBox" class="qr-container">
-                <p style="font-size: 0.8rem; margin-bottom: 5px;">Scan to Pay ₹<span id="qrAmount"></span></p>
-                <img id="qrImg" src="" style="width: 180px; height: 180px; display: block; margin: 0 auto;">
-                <p style="font-size: 0.7rem; color: #666; margin-top: 5px;">pratheep9047806132@oksbi</p>
-            </div>
+            <select id="payMethod" style="margin-bottom:10px;" onchange="toggleUPI(this.value)"><option value="COD">Cash On Delivery (COD)</option><option value="UPI">UPI Payment (QR Scan)</option></select>
+            <div id="upiQRBox" class="qr-container"><p style="font-size: 0.8rem; margin-bottom: 5px;">Scan to Pay ₹<span id="qrAmount"></span></p><img id="qrImg" src="" style="width: 180px; height: 180px; display: block; margin: 0 auto;"><p style="font-size: 0.7rem; color: #666; margin-top: 5px;">pratheep9047806132@oksbi</p></div>
             <button class="btn" id="confirmOrderBtn" style="width:100%; margin-top:10px;">Place Order</button>
         </div>
         <button class="btn" id="chkBtn" onclick="document.getElementById('checkForm').style.display='block'; this.style.display='none'; updateQRAmount();" style="width: 100%; margin-top:10px;">Proceed</button>
@@ -160,7 +201,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, query, orderBy, onSnapshot, serverTimestamp, where, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDo9Px6n63ciURSSU3xVKyV7I3vsqBcDcQ",
@@ -173,277 +214,226 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    let products = [], cart = [], orders = [], activeUser = JSON.parse(localStorage.getItem('m_session'));
+    let products = [], cart = [], orders = [], wishlist = [], activeUser = JSON.parse(localStorage.getItem('m_session'));
+    let currentProductId = null, currentCat = 'All', discount = 0, showWishlistOnly = false;
 
     window.onload = () => { if(activeUser) loginSuccess(activeUser); syncData(); };
 
     function syncData() {
-        onSnapshot(collection(db, "products"), (snap) => {
-            products = snap.docs.map(d => ({id: d.id, ...d.data()}));
-            renderProductsUI();
+        onSnapshot(collection(db, "products"), (snap) => { products = snap.docs.map(d => ({id: d.id, ...d.data()})); renderProductsUI(); });
+        onSnapshot(query(collection(db, "orders"), orderBy("timestamp", "desc")), (snap) => { orders = snap.docs.map(d => ({id: d.id, ...d.data()})); renderOrdersUI(); if(activeUser && activeUser.r === 'admin') calculateSales(); });
+    }
+
+    function calculateSales() {
+        const now = new Date(); const todayStr = now.toLocaleDateString(); const thisMonth = now.getMonth(); const thisYear = now.getFullYear();
+        let dailyTotal = 0, monthlyTotal = 0;
+        orders.forEach(o => {
+            if(!o.timestamp) return; const orderDate = o.timestamp.toDate();
+            if(orderDate.toLocaleDateString() === todayStr) dailyTotal += o.total;
+            if(orderDate.getMonth() === thisMonth && orderDate.getFullYear() === thisYear) monthlyTotal += o.total;
         });
-        
-        onSnapshot(query(collection(db, "orders"), orderBy("timestamp", "desc")), (snap) => {
-            orders = snap.docs.map(d => ({id: d.id, ...d.data()}));
-            renderOrdersUI();
-        });
+        document.getElementById('dailySales').innerText = "₹" + dailyTotal;
+        document.getElementById('monthlySales').innerText = "₹" + monthlyTotal;
+        document.getElementById('totalOrdersCount').innerText = orders.length;
+    }
+
+    function setBtnLoading(btnId, isLoading, originalText) {
+        const btn = document.getElementById(btnId);
+        if(isLoading) { btn.disabled = true; btn.innerHTML = `<span class="loader"></span> Processing...`; }
+        else { btn.disabled = false; btn.innerHTML = originalText; }
     }
 
     window.handleAuth = async () => {
-        const u = document.getElementById('authUser').value;
-        const p = document.getElementById('authPass').value;
-        const r = document.getElementById('authRole').value;
-        const isRegMode = document.getElementById('toggleText').innerText.includes("Login");
-
-        if(!u || !p) return Swal.fire('Error', 'Email and Password fill pannunga', 'error');
-
+        const u = document.getElementById('authUser').value, p = document.getElementById('authPass').value, r = document.getElementById('authRole').value, isRegMode = document.getElementById('toggleText').innerText.includes("Login"), originalText = isRegMode ? "Register Now" : "Login";
+        if(!u || !p) return Swal.fire('Error', 'Details fill pannunga', 'error');
+        setBtnLoading('authBtn', true, originalText);
         if(isRegMode) {
             try {
-                const q = query(collection(db, "users"));
-                const snap = await getDocs(q);
-                if(snap.docs.find(d => d.data().email === u)) return Swal.fire('Error', 'User already exists!', 'error');
-
-                await addDoc(collection(db, "users"), {
-                    email: u,
-                    password: p,
-                    role: r,
-                    createdAt: serverTimestamp()
-                });
-                Swal.fire('Success!', 'Registration Successful! Please Login.', 'success');
-                toggleReg();
-            } catch (e) {
-                Swal.fire('Error', 'Registration Failed', 'error');
-            }
+                const snap = await getDocs(query(collection(db, "users")));
+                if(snap.docs.find(d => d.data().email === u)) { setBtnLoading('authBtn', false, originalText); return Swal.fire('Error', 'User exists!', 'error'); }
+                await addDoc(collection(db, "users"), { email: u, password: p, role: r, createdAt: serverTimestamp() });
+                setBtnLoading('authBtn', false, originalText); Swal.fire('Success!', 'Registered!', 'success'); toggleReg();
+            } catch (e) { setBtnLoading('authBtn', false, originalText); }
         } else {
-            if(r==='admin' && u==='admin' && p==='admin123') {
-                loginSuccess({u, r});
-            } else {
-                const q = query(collection(db, "users"));
-                const snap = await getDocs(q);
+            if(r==='admin' && u==='admin' && p==='admin123') loginSuccess({u, r});
+            else {
+                const snap = await getDocs(query(collection(db, "users")));
                 const user = snap.docs.find(d => d.data().email === u && d.data().password === p && d.data().role === r);
-                
-                if(user) {
-                    loginSuccess({u: user.data().email, r: user.data().role});
-                } else {
-                    Swal.fire('Error', 'Invalid Credentials or Role!', 'error');
-                }
+                if(user) loginSuccess({u: user.data().email, r: user.data().role});
+                else { setBtnLoading('authBtn', false, originalText); Swal.fire('Error', 'Invalid Login!', 'error'); }
             }
         }
     };
 
     window.toggleReg = () => {
-        const t = document.getElementById('toggleText');
-        const b = document.getElementById('authBtn');
-        if(t.innerText.includes("Register")) {
-            t.innerText = "Already have an account? Login here";
-            b.innerText = "Register Now";
-        } else {
-            t.innerText = "New User? Register here";
-            b.innerText = "Login";
-        }
+        const t = document.getElementById('toggleText'), b = document.getElementById('authBtn');
+        if(t.innerText.includes("Register")) { t.innerText = "Already have an account? Login here"; b.innerText = "Register Now"; }
+        else { t.innerText = "New User? Register here"; b.innerText = "Login"; }
     };
 
     function loginSuccess(user) {
         activeUser = user; localStorage.setItem('m_session', JSON.stringify(user));
-        document.getElementById('authScreen').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
-        document.getElementById('userWelcome').innerText = "Hi, " + user.u;
+        document.getElementById('authScreen').style.display = 'none'; document.getElementById('mainApp').style.display = 'block';
         document.getElementById('adminPanel').style.display = user.r === 'admin' ? 'block' : 'none';
         document.getElementById('customerPanel').style.display = user.r === 'customer' ? 'block' : 'none';
+        document.getElementById('wishlistBtn').style.display = user.r === 'admin' ? 'none' : 'block';
     }
 
     window.logout = () => { localStorage.removeItem('m_session'); location.reload(); };
 
     document.getElementById('uploadBtn').onclick = async () => {
-        const n = document.getElementById('pName').value, 
-              p = document.getElementById('pPrice').value, 
-              d = document.getElementById('pDesc').value, 
-              i = document.getElementById('pImg').files[0];
-        
-        if(!n || !p || !i) return Swal.fire('Error', 'Ellaa field-um fill pannunga', 'error');
-        
-        Swal.fire({ title: 'Processing Image...', text: 'Compressing...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
-
-        const reader = new FileReader(); 
-        reader.readAsDataURL(i);
+        const n = document.getElementById('pName').value, p = document.getElementById('pPrice').value, d = document.getElementById('pDesc').value, i = document.getElementById('pImg').files[0], cat = document.getElementById('pCat').value, st = document.getElementById('pStock').value;
+        if(!n || !p || !i) return Swal.fire('Error', 'Fields are empty', 'error');
+        setBtnLoading('uploadBtn', true, 'Upload to Cloud');
+        const reader = new FileReader(); reader.readAsDataURL(i);
         reader.onload = (e) => { 
-            const img = new Image();
-            img.src = e.target.result;
+            const img = new Image(); img.src = e.target.result;
             img.onload = async () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800; 
-                const scaleSize = MAX_WIDTH / img.width;
-                canvas.width = MAX_WIDTH;
-                canvas.height = img.height * scaleSize;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-
+                const canvas = document.createElement('canvas'); const MAX_WIDTH = 800; const scaleSize = MAX_WIDTH / img.width;
+                canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize;
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
                 try {
-                    await addDoc(collection(db, "products"), {
-                        name: n, price: parseInt(p), desc: d, img: compressedBase64, createdAt: serverTimestamp()
-                    }); 
-                    Swal.fire('Success!', 'Product added!', 'success');
-                    document.getElementById('pName').value = ''; document.getElementById('pPrice').value = '';
-                    document.getElementById('pDesc').value = ''; document.getElementById('pImg').value = '';
-                } catch (err) {
-                    Swal.fire('Error', 'Upload failed', 'error');
-                }
+                    await addDoc(collection(db, "products"), { name: n, price: parseInt(p), desc: d, img: canvas.toDataURL('image/jpeg', 0.7), category: cat, stock: parseInt(st), createdAt: serverTimestamp() }); 
+                    setBtnLoading('uploadBtn', false, 'Upload to Cloud'); Swal.fire('Success!', 'Added!', 'success');
+                } catch (err) { setBtnLoading('uploadBtn', false, 'Upload to Cloud'); }
             };
         };
     };
 
-    function renderProductsUI() {
-        document.getElementById('productGrid').innerHTML = products.map(p => `<div class="card" onclick="openDetail('${p.id}')"><img src="${p.img}"><h4>${p.name}</h4><p>₹${p.price}</p></div>`).join('');
+    window.filterCat = (cat) => {
+        currentCat = cat; showWishlistOnly = false;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        document.getElementById('collectionTitle').innerText = "Our Collection";
+        renderProductsUI();
+    };
+
+    window.toggleWishlistOnly = () => {
+        showWishlistOnly = !showWishlistOnly;
+        document.getElementById('collectionTitle').innerText = showWishlistOnly ? "My Wishlist" : "Our Collection";
+        renderProductsUI();
+    };
+
+    window.renderProductsUI = () => {
+        const searchTerm = document.getElementById('productSearch').value.toLowerCase();
+        let filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm));
+        if(!showWishlistOnly && currentCat !== 'All') filtered = filtered.filter(p => p.category === currentCat);
+        if(showWishlistOnly) filtered = products.filter(p => wishlist.includes(p.id));
+        
+        if(filtered.length === 0) { document.getElementById('productGrid').innerHTML = `<div class="empty-state"><i class="fas fa-heart"></i><p>No products found.</p></div>`; return; }
+        document.getElementById('productGrid').innerHTML = filtered.map(p => `
+            <div class="card">
+                <div class="wishlist-heart ${wishlist.includes(p.id) ? 'active' : ''}" onclick="toggleWish('${p.id}')">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <div onclick="openDetail('${p.id}')">
+                    <span class="stock-badge">${p.stock > 0 ? p.stock + ' in stock' : 'Out of Stock'}</span>
+                    <img src="${p.img}">
+                    <h4>${p.name}</h4>
+                    <p>₹${p.price}</p>
+                </div>
+            </div>`).join('');
+    };
+
+    window.toggleWish = (id) => {
+        event.stopPropagation();
+        if(wishlist.includes(id)) { wishlist = wishlist.filter(x => x !== id); }
+        else { wishlist.push(id); }
+        document.getElementById('wishCount').innerText = wishlist.length;
+        renderProductsUI();
+    };
+
+    window.openDetail = async (id) => {
+        const p = products.find(x => x.id === id); if(!p) return; currentProductId = id;
+        document.getElementById('detailTitle').innerText = p.name; document.getElementById('detailPrice').innerText = "₹" + p.price;
+        document.getElementById('detailImg').src = p.img; document.getElementById('detailText').innerText = p.desc;
+        let actionHtml = activeUser.r==='customer' ? (p.stock > 0 ? `<button class="btn" onclick="addToCart('${p.id}')">Add to Cart</button>` : `<button class="btn" style="background:#ccc" disabled>Out of Stock</button>`) : `<button class="btn" style="background:red" onclick="deleteProd('${p.id}')">Delete Product</button>`;
+        document.getElementById('detailAction').innerHTML = actionHtml;
+        document.getElementById('productDetailView').style.display = 'block';
+        loadReviews(id); checkReviewEligibility(p.name);
+    };
+
+    async function checkReviewEligibility(pName) {
+        const form = document.getElementById('addReviewForm'); const msg = document.getElementById('reviewStatusMsg');
+        form.style.display = 'none'; msg.innerText = "";
+        if(activeUser.r === 'admin') return;
+        const revSnap = await getDocs(query(collection(db, "reviews"), where("productId", "==", currentProductId), where("user", "==", activeUser.u)));
+        if(!revSnap.empty) { msg.innerText = "Review already submitted."; return; }
+        if(orders.some(o => o.user === activeUser.u && o.status === 'Delivered' && o.items.some(i => i.name === pName))) form.style.display = 'block';
+        else msg.innerText = "Only verified buyers can review.";
     }
 
-    window.openDetail = (id) => {
-        const p = products.find(x => x.id === id);
-        if(!p) return;
-        document.getElementById('detailTitle').innerText = p.name; 
-        document.getElementById('detailPrice').innerText = "₹" + p.price;
-        document.getElementById('detailImg').src = p.img; 
-        document.getElementById('detailText').innerText = p.desc;
-        document.getElementById('detailAction').innerHTML = activeUser.r==='customer' 
-            ? `<button class="btn" onclick="addToCart('${p.id}')">Add to Cart</button>` 
-            : `<button class="btn" style="background:red" onclick="deleteProd('${p.id}')">Delete Product</button>`;
-        document.getElementById('productDetailView').style.display = 'block';
+    async function loadReviews(pId) {
+        const snap = await getDocs(query(collection(db, "reviews"), where("productId", "==", pId), orderBy("timestamp", "desc")));
+        const list = document.getElementById('reviewList');
+        if(snap.empty) { list.innerHTML = `<p style="color:#aaa;">No reviews.</p>`; }
+        else { list.innerHTML = snap.docs.map(d => { const data = d.data(); let stars = ''; for(let i=0; i<5; i++) stars += `<i class="fa${i < data.rating ? 's' : 'r'} fa-star"></i>`; return `<div class="review-card"><div style="display:flex; justify-content:space-between;"><b>${data.user.split('@')[0]}</b><span class="star-rating">${stars}</span></div><p style="margin-top:5px; font-size:0.9rem;">${data.comment}</p></div>`; }).join(''); }
+    }
+
+    document.getElementById('submitReviewBtn').onclick = async () => {
+        const rating = document.getElementById('revRating').value, comment = document.getElementById('revComment').value;
+        if(!comment) return; setBtnLoading('submitReviewBtn', true, 'Submit');
+        try { await addDoc(collection(db, "reviews"), { productId: currentProductId, user: activeUser.u, rating: parseInt(rating), comment, timestamp: serverTimestamp() }); document.getElementById('revComment').value = ''; loadReviews(currentProductId); setBtnLoading('submitReviewBtn', false, 'Submit'); } catch (e) { setBtnLoading('submitReviewBtn', false, 'Submit'); }
     };
 
-    window.deleteProd = async (id) => {
-        const confirm = await Swal.fire({ title: 'Delete?', icon: 'warning', showCancelButton: true });
-        if(confirm.isConfirmed) {
-            await deleteDoc(doc(db, "products", id));
-            closeDetail();
-            Swal.fire('Deleted!', '', 'success');
-        }
-    };
-
-    window.closeDetail = () => document.getElementById('productDetailView').style.display = 'none';
-
+    window.deleteProd = async (id) => { if((await Swal.fire({ title: 'Delete?', icon: 'warning', showCancelButton: true })).isConfirmed) { await deleteDoc(doc(db, "products", id)); closeDetail(); } };
+    window.closeDetail = () => { document.getElementById('productDetailView').style.display = 'none'; };
+    
     window.addToCart = (id) => { 
-        cart.push(products.find(x => x.id === id)); 
-        document.getElementById('cartCount').innerText = cart.length; 
-        Swal.fire({ title: 'Added!', icon: 'success', timer: 1000, showConfirmButton: false });
+        const p = products.find(x => x.id === id); if(p.stock <= 0) return;
+        cart.push(p); document.getElementById('cartCount').innerText = cart.length; 
+        Swal.fire({ title: 'Added!', icon: 'success', timer: 1000, showConfirmButton: false }); 
     };
+
+    window.applyPromo = () => { if(document.getElementById('promoInput').value === 'DREAM10') { discount = 0.10; openCart(); } };
 
     window.openCart = () => {
-        document.getElementById('cartList').innerHTML = cart.map(i => `<div>${i.name} - ₹${i.price}</div>`).join('');
-        document.getElementById('cartTotal').innerText = "Total: ₹" + cart.reduce((s,i)=>s+i.price, 0);
+        if(cart.length === 0) { document.getElementById('cartList').innerHTML = `Empty`; document.getElementById('chkBtn').style.display = 'none'; }
+        else { 
+            document.getElementById('cartList').innerHTML = cart.map(i => `<div>${i.name} - ₹${i.price}</div>`).join(''); 
+            const tot = cart.reduce((s,i)=>s+i.price, 0) * (1 - discount);
+            document.getElementById('cartTotal').innerText = `Total: ₹${tot}`; 
+            document.getElementById('chkBtn').style.display = 'block'; 
+        }
         document.getElementById('cartModal').style.display = 'flex';
     };
 
-    window.toggleUPI = (val) => {
-        const box = document.getElementById('upiQRBox');
-        if(val === 'UPI') {
-            box.style.display = 'block';
-            updateQRAmount();
-        } else {
-            box.style.display = 'none';
-        }
-    };
-
+    window.toggleUPI = (val) => { document.getElementById('upiQRBox').style.display = (val === 'UPI') ? 'block' : 'none'; if(val === 'UPI') updateQRAmount(); };
     window.updateQRAmount = () => {
-        const total = cart.reduce((s,i)=>s+i.price, 0);
+        const total = cart.reduce((s,i)=>s+i.price, 0) * (1 - discount);
         document.getElementById('qrAmount').innerText = total;
-        const upiID = "pratheep9047806132@oksbi";
-        const upiLink = `upi://pay?pa=${upiID}&pn=DreamCloud&am=${total}&cu=INR&tn=Order_Payment`;
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`;
-        document.getElementById('qrImg').src = qrUrl;
+        document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('upi://pay?pa=pratheep9047806132@oksbi&am='+total)}`;
     };
 
     document.getElementById('confirmOrderBtn').onclick = async () => {
-        const phone = document.getElementById('addrPhone').value;
-        const address = document.getElementById('addrFull').value;
-        const payMethod = document.getElementById('payMethod').value;
-        
-        if(!phone || !address) return Swal.fire('Error', 'Fill details', 'error');
-
-        const oId = 'ORD' + Math.floor(10000 + Math.random() * 90000);
-        const total = cart.reduce((s,i)=>s+i.price, 0);
-
-        const oData = { 
-            orderId: oId, user: activeUser.u, ph: phone, ad: address, 
-            items: [...cart], total: total, status: 'Pending', 
-            paymentMethod: payMethod,
-            timestamp: serverTimestamp(), timeStr: new Date().toLocaleString() 
-        };
-
+        const ph = document.getElementById('addrPhone').value, ad = document.getElementById('addrFull').value;
+        if(!ph || !ad) return; setBtnLoading('confirmOrderBtn', true, 'Place Order');
+        const oId = 'ORD' + Math.floor(10000 + Math.random() * 90000), total = cart.reduce((s,i)=>s+i.price, 0) * (1 - discount);
         try {
-            await addDoc(collection(db, "orders"), oData);
-            
+            await addDoc(collection(db, "orders"), { orderId: oId, user: activeUser.u, ph, ad, items: [...cart], total, status: 'Pending', timestamp: serverTimestamp(), timeStr: new Date().toLocaleString() });
+            for(let item of cart) await updateDoc(doc(db, "products", item.id), { stock: increment(-1) });
             emailjs.init("GUWZpUsjNplK0OgnI"); 
-
-            const emailParams = {
-                to_email: activeUser.u,
-                name: activeUser.u,
-                message: "Items: " + cart.map(item => item.name).join(", "),
-                order_id: oId, 
-                total_amount: total, 
-                address: address
-            };
-
-            emailjs.send("service_pt7lz3v", "template_1xd92ti", emailParams)
-                .then((res) => {
-                    Swal.fire('Order Placed!', `Success! (${payMethod}) Email sent to ${activeUser.u}.`, 'success');
-                })
-                .catch((err) => {
-                    console.error("EmailJS Error:", err);
-                    Swal.fire('Order Placed!', 'Order saved. Email delivery issue.', 'warning');
-                });
-
-            cart = []; 
-            document.getElementById('cartCount').innerText = '0';
-            document.getElementById('cartModal').style.display = 'none'; 
-            document.getElementById('checkForm').style.display = 'none';
-            document.getElementById('chkBtn').style.display = 'block';
-            document.getElementById('upiQRBox').style.display = 'none';
-        } catch (e) {
-            Swal.fire('Error', 'Order failed!', 'error');
-        }
+            emailjs.send("service_pt7lz3v", "template_1xd92ti", { to_email: activeUser.u, order_id: oId, total_amount: total });
+            cart = []; document.getElementById('cartCount').innerText = '0'; document.getElementById('cartModal').style.display = 'none';
+            setBtnLoading('confirmOrderBtn', false, 'Place Order'); Swal.fire('Success!', 'Order Placed!', 'success');
+        } catch (e) { setBtnLoading('confirmOrderBtn', false, 'Place Order'); }
     };
 
-    window.updateStatus = async (id, newStatus) => {
-        await updateDoc(doc(db, "orders", id), { status: newStatus });
-        Swal.fire({ title: 'Updated!', icon: 'success', timer: 1000, showConfirmButton: false });
-    };
+    window.updateStatus = async (id, s) => { await updateDoc(doc(db, "orders", id), { status: s }); };
 
     function renderOrdersUI() {
-        document.getElementById('adminOrders').innerHTML = orders.map(o => `
-            <tr><td>${o.timeStr}</td><td>${o.orderId}</td><td>${o.user}</td><td>${o.ad} (${o.paymentMethod || 'N/A'})</td><td>₹${o.total}</td>
-                <td><select class="status-select" onchange="updateStatus('${o.id}', this.value)">
-                    <option value="Pending" ${o.status==='Pending'?'selected':''}>Pending</option>
-                    <option value="Shipped" ${o.status==='Shipped'?'selected':''}>Shipped</option>
-                    <option value="Delivered" ${o.status==='Delivered'?'selected':''}>Delivered</option>
-                </select></td></tr>`).join('');
-
-        document.getElementById('custOrders').innerHTML = orders.filter(o => o.user === activeUser.u).map(o => `
-            <tr><td>${o.timeStr ? o.timeStr.split(',')[0] : '...'}</td><td>${o.orderId}</td><td>₹${o.total}</td>
-                <td><span class="status-badge status-${o.status}">${o.status}</span></td>
-                <td><button class="pdf-btn" onclick="downloadInvoice('${o.orderId}')"><i class="fa fa-file-pdf"></i></button></td></tr>`).join('');
+        const adminBody = document.getElementById('adminOrders'); if(adminBody) adminBody.innerHTML = orders.map(o => `<tr><td>${o.timeStr}</td><td>${o.orderId}</td><td>${o.user}</td><td>${o.ad}</td><td>₹${o.total}</td><td><select onchange="updateStatus('${o.id}', this.value)"><option value="Pending" ${o.status==='Pending'?'selected':''}>Pending</option><option value="Shipped" ${o.status==='Shipped'?'selected':''}>Shipped</option><option value="Delivered" ${o.status==='Delivered'?'selected':''}>Delivered</option></select></td></tr>`).join('');
+        const custBody = document.getElementById('custOrders');
+        if(custBody) custBody.innerHTML = orders.filter(o => o.user === activeUser?.u).map(o => `<tr><td>${o.timeStr.split(',')[0]}</td><td>${o.orderId}</td><td>₹${o.total}</td><td><div class="track-container"><div class="track-line"></div><div class="track-step active"><i class="fas fa-box"></i></div><div class="track-step ${o.status!=='Pending'?'active':''}"><i class="fas fa-truck"></i></div><div class="track-step ${o.status==='Delivered'?'active':''}"><i class="fas fa-gift"></i></div></div><small>${o.status}</small></td><td><button class="pdf-btn" onclick="downloadInvoice('${o.orderId}')"><i class="fa fa-file-pdf"></i></button></td></tr>`).join('');
     }
 
-    window.downloadInvoice = async (orderId) => {
-        const o = orders.find(x => x.orderId === orderId);
-        if(!o) return;
-        document.getElementById('rId').innerText = o.orderId;
-        document.getElementById('rDate').innerText = o.timeStr;
-        document.getElementById('rAddr').innerText = o.ad;
-        document.getElementById('rPhone').innerText = o.ph;
-        document.getElementById('rTotal').innerText = o.total;
-        document.getElementById('rItems').innerHTML = o.items.map(i => `<tr><td>${i.name}</td><td>₹${i.price}</td></tr>`).join('');
-        const template = document.getElementById('receiptTemplate');
-        template.style.left = "0px";
-        html2canvas(template).then(canvas => {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, 190, 0);
-            pdf.save(`Invoice_${o.orderId}.pdf`);
-            template.style.left = "-9999px";
-        });
+    window.downloadInvoice = async (id) => {
+        const o = orders.find(x => x.orderId === id); if(!o) return;
+        document.getElementById('rId').innerText = o.orderId; document.getElementById('rDate').innerText = o.timeStr; document.getElementById('rAddr').innerText = o.ad; document.getElementById('rPhone').innerText = o.ph; document.getElementById('rTotal').innerText = o.total; document.getElementById('rItems').innerHTML = o.items.map(i => `<tr><td>${i.name}</td><td>₹${i.price}</td></tr>`).join('');
+        const t = document.getElementById('receiptTemplate'); t.style.left = "0px";
+        html2canvas(t).then(canvas => { const pdf = new jspdf.jsPDF('p', 'mm', 'a4'); pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, 190, 0); pdf.save(`Inv_${o.orderId}.pdf`); t.style.left = "-9999px"; });
     }
-
-    window.togglePassword = (i) => { const inp = i.previousElementSibling; inp.type = inp.type==='password'?'text':'password'; };
+    window.togglePassword = (i) => { const inp = i.previousElementSibling; inp.type = (inp.type==='password')?'text':'password'; };
 </script>
 </body>
 </html>
